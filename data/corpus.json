@@ -1,0 +1,610 @@
+{
+  "documents": [
+    {
+      "id": "doc-001",
+      "title": "Retrieval-Augmented Generation (RAG) overview",
+      "text": "Retrieval-Augmented Generation combines a retrieval system with a generative model. The retriever finds relevant chunks from a knowledge base, and the generator produces an answer grounded in those chunks. This reduces hallucination because the model must cite evidence from the retrieved context rather than relying on parametric memory alone."
+    },
+    {
+      "id": "doc-002",
+      "title": "Hybrid retrieval: dense and lexical search",
+      "text": "Hybrid retrieval combines dense vector search (semantic similarity) with lexical search (keyword matching, such as BM25). Dense search captures conceptual similarity but can miss exact terms; lexical search catches exact keywords but misses synonyms. Combining both with Reciprocal Rank Fusion gives better recall than either alone."
+    },
+    {
+      "id": "doc-003",
+      "title": "Reciprocal Rank Fusion for result combination",
+      "text": "Reciprocal Rank Fusion (RRF) combines multiple ranked result lists into a single ranking. For each item, the RRF score is the sum of 1/(k + rank) across all lists, where k is typically 60. Items ranked highly by multiple retrievers score best. RRF requires no score normalization and works with heterogeneous retrievers."
+    },
+    {
+      "id": "doc-004",
+      "title": "BM25 ranking function",
+      "text": "BM25 is a probabilistic ranking function used in lexical search. It scores documents based on term frequency with saturation (parameter k1) and document length normalization (parameter b). The standard parameters are k1=1.2 and b=0.75. BM25 penalizes very long documents and rewards documents where query terms appear frequently relative to document length."
+    },
+    {
+      "id": "doc-005",
+      "title": "TF-IDF cosine similarity",
+      "text": "TF-IDF weights terms by their frequency in a document (term frequency) and their rarity across the corpus (inverse document frequency). Cosine similarity between TF-IDF vectors measures semantic similarity at the term level. This is a dependency-free approximation of dense retrieval that works well for keyword-heavy queries."
+    },
+    {
+      "id": "doc-006",
+      "title": "Document chunking strategies",
+      "text": "Documents must be split into chunks before indexing. Fixed-size chunking with overlap ensures that no fact is split across a chunk boundary. Overlap of 20-40 tokens between adjacent chunks preserves context. Chunk size affects retrieval precision: smaller chunks are more specific but may lack context; larger chunks carry more context but dilute relevance signals."
+    },
+    {
+      "id": "doc-007",
+      "title": "Citation verification in RAG systems",
+      "text": "Citation verification checks that every claim in a generated answer is supported by a cited source chunk. An answer is grounded only when all significant terms in the answer appear in at least one cited chunk. Ungrounded terms indicate potential hallucination and should be flagged or cause the system to refuse the answer."
+    },
+    {
+      "id": "doc-008",
+      "title": "Evaluation suites for RAG",
+      "text": "A RAG evaluation suite tests the system against a held-out question set with known answers. Metrics include groundedness (all claims cited), answer correctness (expected keywords present), and retrieval recall (relevant chunks retrieved). A CI gate should fail when pass rate drops below a threshold, preventing regressions from shipping."
+    },
+    {
+      "id": "doc-009",
+      "title": "Dev/test split for evaluation",
+      "text": "Evaluation questions must be split into development and test sets. The dev set is used to tune thresholds and parameters; the test set reports the final number. Tuning on the test set produces optimistic, non-reproducible results. A standard split is 80% dev / 20% test."
+    },
+    {
+      "id": "doc-010",
+      "title": "Prompt injection defense",
+      "text": "Prompt injection attacks attempt to override system instructions by embedding malicious commands in user input. Defenses include input sanitization, instruction separation (system message distinct from user message), and output verification. A RAG system should never execute actions based on retrieved content without explicit human approval."
+    },
+    {
+      "id": "doc-011",
+      "title": "Human-in-the-loop approval gates",
+      "text": "AI agents that can take actions (send email, write files, call APIs) must stop for a named human approval before acting. The approval decision is recorded in an audit trail. Write-ahead claims prevent duplicate execution. This pattern is essential for production agent systems where mistakes have real consequences."
+    },
+    {
+      "id": "doc-012",
+      "title": "PostgreSQL row-level security for multi-tenancy",
+      "text": "PostgreSQL row-level security (RLS) enforces tenant isolation at the database level. With FORCE ROW LEVEL SECURITY, even the table owner is subject to RLS policies, preventing application bugs from leaking data between tenants. Cross-tenant reads return zero rows instead of another customer's data."
+    },
+    {
+      "id": "doc-013",
+      "title": "Write-ahead send claims for idempotent execution",
+      "text": "Before calling an external provider (email, SMS, API), the system writes a 'sending' claim on a unique draft id. Two workers cannot both reach the provider because only one can claim the draft. This makes retries safe and prevents duplicate sends in distributed systems."
+    },
+    {
+      "id": "doc-014",
+      "title": "Hash-chained audit ledger",
+      "text": "Every decision (approve, reject, send) is appended to a hash chain. Each entry contains the hash of the previous entry, making tampering detectable. A per-tenant sequence number prevents same-millisecond decisions from falsely appearing as a tampered chain."
+    },
+    {
+      "id": "doc-015",
+      "title": "CI gates for AI quality",
+      "text": "A CI gate runs the evaluation suite on every commit and exits non-zero when quality drops below threshold. This prevents regressions from shipping to production. The gate should report pass rate, dev/test split results, and specific failures so engineers can fix them before merging."
+    },
+    {
+      "id": "doc-016",
+      "title": "n8n workflow automation",
+      "text": "n8n is a workflow automation tool that connects apps and services through a visual interface. Workflows can trigger on events, process data, and call APIs. For AI automation, n8n can orchestrate retrieval, generation, and human approval steps across multiple systems."
+    },
+    {
+      "id": "doc-017",
+      "title": "Model Context Protocol (MCP)",
+      "text": "The Model Context Protocol is a standard for connecting AI assistants to tools and data sources. An MCP server exposes tools with JSON schemas that clients can discover and call. MCP enables interoperability between different AI systems and tool providers without custom integrations."
+    },
+    {
+      "id": "doc-018",
+      "title": "Evaluation metrics: pass@k and pass^k",
+      "text": "pass@k measures the probability that at least one of k sampled answers is correct. pass^k measures the probability that all k answers are correct. These metrics account for sampling variability in generative systems and are more reliable than single-shot accuracy."
+    },
+    {
+      "id": "doc-019",
+      "title": "Cluster bootstrap confidence intervals",
+      "text": "Cluster bootstrap resampling estimates confidence intervals for evaluation metrics when questions are not independent (e.g., multiple questions about the same topic). Resampling at the cluster level (topic) rather than the question level gives more honest uncertainty estimates."
+    },
+    {
+      "id": "doc-020",
+      "title": "McNemar test for paired comparison",
+      "text": "The McNemar test compares two systems on the same set of cases. It tests whether the improvement from system A to system B is statistically significant, accounting for the fact that both systems were evaluated on identical cases. A p-value below 0.05 indicates a significant difference."
+    },
+    {
+      "id": "doc-021",
+      "title": "System prompts vs user prompts",
+      "text": "System prompts set the behavior and constraints for the AI model; user prompts carry the actual request. Keeping them separate prevents prompt injection where user input tries to override system instructions. The system prompt should define the model's role, output format, and safety boundaries."
+    },
+    {
+      "id": "doc-022",
+      "title": "Groundedness vs fluency",
+      "text": "Groundedness measures whether an answer is supported by evidence (retrieved chunks). Fluency measures how natural the answer reads. A fluent but ungrounded answer is a hallucination. Production RAG systems prioritize groundedness over fluency."
+    },
+    {
+      "id": "doc-023",
+      "title": "Retrieval recall vs precision",
+      "text": "Recall measures what fraction of relevant chunks are retrieved; precision measures what fraction of retrieved chunks are relevant. Hybrid retrieval improves recall (more relevant chunks found) while citation verification improves precision (irrelevant chunks don't make it into the answer)."
+    },
+    {
+      "id": "doc-024",
+      "title": "Deterministic evaluation without LLM judges",
+      "text": "Evaluation can be fully deterministic without calling an LLM as a judge. Rule-based graders check for keyword presence, citation coverage, and expected answer terms. This is reproducible, fast, and cheap — suitable for CI gates on every commit."
+    },
+    {
+      "id": "doc-025",
+      "title": "Production RAG failure modes",
+      "text": "Common RAG failure modes include: retrieval misses relevant chunks (low recall), generator ignores citations (ungrounded), chunk boundaries split facts (poor chunking), and prompt injection overrides instructions (security). Each failure mode requires a specific defense: better retrieval, citation verification, overlap chunking, and input sanitization."
+    },
+    {
+      "id": "doc-026",
+      "title": "Embedding-free semantic search",
+      "text": "Without sentence-transformers or other embedding models, TF-IDF with cosine similarity provides a reasonable approximation of semantic search. It captures term-level similarity and works well when the vocabulary matches the query domain. For production systems with domain-specific terminology, TF-IDF can outperform generic embeddings."
+    },
+    {
+      "id": "doc-027",
+      "title": "Answer citation format",
+      "text": "Citations should reference the source document and chunk, not just the document. Readers need to know exactly which part of which document supports each claim. Inline citation markers ([1], [2]) with a reference list at the end are the standard format."
+    },
+    {
+      "id": "doc-028",
+      "title": "CI pipeline for RAG systems",
+      "text": "A CI pipeline for RAG runs unit tests, integration tests, and the evaluation suite on every commit. The evaluation gate exits non-zero when pass rate drops below threshold (e.g., 90%). This catches regressions in retrieval quality, citation coverage, or answer correctness before they reach production."
+    },
+    {
+      "id": "doc-029",
+      "title": "Observability for retrieval systems",
+      "text": "Observability metrics for RAG include retrieval latency, chunk relevance scores, groundedness rate, and ungrounded term frequency. These metrics help operators detect when retrieval quality degrades and trigger investigation before users notice."
+    },
+    {
+      "id": "doc-030",
+      "title": "Dependency-free deployment",
+      "text": "A production RAG system should minimize external dependencies. Pure Python stdlib with a lightweight web framework (FastAPI) and no ML model downloads means the system can run anywhere — including serverless environments without GPU access. The corpus and index ship with the code."
+    },
+    {
+      "id": "doc-031",
+      "title": "Vector search vs keyword search trade-offs",
+      "text": "Vector search excels at conceptual similarity ('how do I retry failed payments?') but can miss exact product names or error codes. Keyword search (BM25) catches exact terms but misses paraphrases. Hybrid retrieval combines both: vector for concepts, keywords for exact terms, RRF to merge."
+    },
+    {
+      "id": "doc-032",
+      "title": "Chunk overlap and boundary effects",
+      "text": "When a sentence is split across two chunks, each chunk may be too partial to retrieve correctly. Overlap of 30-50 tokens between chunks ensures that boundary sentences appear in full in at least one chunk. This prevents retrieval failures for facts that span chunk boundaries."
+    },
+    {
+      "id": "doc-033",
+      "title": "System instruction separation",
+      "text": "System instructions define the model's role, constraints, and output format. User input carries the actual request. Mixing them allows prompt injection: a user can say 'ignore previous instructions' and override the system. Keeping system instructions in a separate, immutable message prevents this attack."
+    },
+    {
+      "id": "doc-034",
+      "title": "Human approval audit trail",
+      "text": "Every human approval decision should be recorded with: who approved, what was approved, when, and the hash of the previous decision. This creates an immutable audit trail that proves the system did not act without authorization."
+    },
+    {
+      "id": "doc-035",
+      "title": "Idempotency keys for external API calls",
+      "text": "Before calling an external API (email provider, payment gateway), generate an idempotency key from the request content. Send the key with the request. If the same request is retried, the provider recognizes the key and does not duplicate the action. This makes retries safe."
+    },
+    {
+      "id": "doc-036",
+      "title": "Multi-tenant data isolation testing",
+      "text": "Multi-tenancy must be tested with adversarial queries: user A should never see user B's data. Tests attempt cross-tenant reads with different tenant IDs and assert zero rows returned. Database-level enforcement (RLS) is more reliable than application-level filtering."
+    },
+    {
+      "id": "doc-037",
+      "title": "Eval set design principles",
+      "text": "A good eval set covers: easy questions (high recall expected), hard questions (test retrieval limits), adversarial questions (test injection defense), and citation-heavy questions (test grounding). Questions should be split dev/test so thresholds are not tuned on the reported number."
+    },
+    {
+      "id": "doc-038",
+      "title": "Answer grounding thresholds",
+      "text": "An answer is grounded when all significant terms appear in cited chunks. A production system might require 100% grounding for customer-facing answers and allow lower thresholds for internal tools. The threshold should be configurable and enforced in CI."
+    },
+    {
+      "id": "doc-039",
+      "title": "Retrieval latency budget",
+      "text": "Retrieval should complete within a latency budget (e.g., 200ms for hybrid search over a small corpus). If retrieval is slow, the overall system feels unresponsive regardless of generation speed. Index size, chunk count, and scoring complexity all affect latency."
+    },
+    {
+      "id": "doc-040",
+      "title": "RAG vs fine-tuning for knowledge",
+      "text": "RAG retrieves knowledge at runtime from an external source; fine-tuning bakes knowledge into model weights. RAG is better for frequently changing knowledge (documents can be updated without retraining) and provides citations. Fine-tuning is better for learning style or behavior patterns."
+    }
+  ],
+  "eval_questions": [
+    {
+      "q": "What is Retrieval-Augmented Generation?",
+      "expected": "retrieval"
+    },
+    {
+      "q": "How does hybrid retrieval work?",
+      "expected": "dense"
+    },
+    {
+      "q": "What is Reciprocal Rank Fusion?",
+      "expected": "rank"
+    },
+    {
+      "q": "What are the standard BM25 parameters?",
+      "expected": "1.2"
+    },
+    {
+      "q": "How does TF-IDF measure similarity?",
+      "expected": "cosine"
+    },
+    {
+      "q": "Why use overlap in document chunking?",
+      "expected": "boundary"
+    },
+    {
+      "q": "What is citation verification?",
+      "expected": "grounded"
+    },
+    {
+      "q": "What does a RAG evaluation suite test?",
+      "expected": "groundedness"
+    },
+    {
+      "q": "Why split eval into dev and test?",
+      "expected": "tuning"
+    },
+    {
+      "q": "How to defend against prompt injection?",
+      "expected": "sanitization"
+    },
+    {
+      "q": "What is human-in-the-loop approval?",
+      "expected": "approval"
+    },
+    {
+      "q": "How does PostgreSQL RLS enforce isolation?",
+      "expected": "row-level"
+    },
+    {
+      "q": "What is a write-ahead send claim?",
+      "expected": "draft"
+    },
+    {
+      "q": "What is a hash-chained audit ledger?",
+      "expected": "tampering"
+    },
+    {
+      "q": "What does a CI gate do for AI quality?",
+      "expected": "regressions"
+    },
+    {
+      "q": "What is n8n used for?",
+      "expected": "automation"
+    },
+    {
+      "q": "What is the Model Context Protocol?",
+      "expected": "standard"
+    },
+    {
+      "q": "What is pass@k?",
+      "expected": "sampled"
+    },
+    {
+      "q": "What is cluster bootstrap?",
+      "expected": "uncertainty"
+    },
+    {
+      "q": "What does the McNemar test compare?",
+      "expected": "significant"
+    },
+    {
+      "q": "What is the difference between system and user prompts?",
+      "expected": "separate"
+    },
+    {
+      "q": "What is groundedness vs fluency?",
+      "expected": "evidence"
+    },
+    {
+      "q": "What is retrieval recall vs precision?",
+      "expected": "relevant"
+    },
+    {
+      "q": "Can evaluation be deterministic?",
+      "expected": "rule-based"
+    },
+    {
+      "q": "What are common RAG failure modes?",
+      "expected": "recall"
+    },
+    {
+      "q": "How does embedding-free semantic search work?",
+      "expected": "TF-IDF"
+    },
+    {
+      "q": "What is the answer citation format?",
+      "expected": "inline"
+    },
+    {
+      "q": "What does a CI pipeline for RAG run?",
+      "expected": "evaluation"
+    },
+    {
+      "q": "What observability metrics matter for RAG?",
+      "expected": "latency"
+    },
+    {
+      "q": "What is the vector vs keyword trade-off?",
+      "expected": "conceptual"
+    },
+    {
+      "q": "How does chunk overlap prevent retrieval failures?",
+      "expected": "boundary"
+    },
+    {
+      "q": "Why separate system instructions from user input?",
+      "expected": "injection"
+    },
+    {
+      "q": "What goes in a human approval audit trail?",
+      "expected": "who"
+    },
+    {
+      "q": "What is an idempotency key for?",
+      "expected": "duplicate"
+    },
+    {
+      "q": "How is multi-tenant isolation tested?",
+      "expected": "cross-tenant"
+    },
+    {
+      "q": "What principles guide eval set design?",
+      "expected": "adversarial"
+    },
+    {
+      "q": "What grounding threshold should production use?",
+      "expected": "100"
+    },
+    {
+      "q": "What is the retrieval latency budget?",
+      "expected": "200ms"
+    },
+    {
+      "q": "How does RAG differ from fine-tuning?",
+      "expected": "runtime"
+    },
+    {
+      "q": "What is BM25 used for?",
+      "expected": "lexical"
+    },
+    {
+      "q": "What does RRF combine?",
+      "expected": "ranked"
+    },
+    {
+      "q": "What is TF-IDF?",
+      "expected": "term"
+    },
+    {
+      "q": "Why chunk documents before indexing?",
+      "expected": "retrieval"
+    },
+    {
+      "q": "What does citation verification flag?",
+      "expected": "ungrounded"
+    },
+    {
+      "q": "What metrics does RAG evaluation use?",
+      "expected": "recall"
+    },
+    {
+      "q": "Why is dev/test split important?",
+      "expected": "optimistic"
+    },
+    {
+      "q": "How does prompt injection work?",
+      "expected": "override"
+    },
+    {
+      "q": "What do approval gates prevent?",
+      "expected": "actions"
+    },
+    {
+      "q": "How does RLS prevent data leaks?",
+      "expected": "zero rows"
+    },
+    {
+      "q": "What prevents duplicate sends?",
+      "expected": "idempotency"
+    },
+    {
+      "q": "What makes a hash chain tamper-evident?",
+      "expected": "previous"
+    },
+    {
+      "q": "What does CI gate prevent shipping?",
+      "expected": "regressions"
+    },
+    {
+      "q": "What does n8n orchestrate?",
+      "expected": "workflows"
+    },
+    {
+      "q": "What does MCP expose?",
+      "expected": "tools"
+    },
+    {
+      "q": "What does pass^k measure?",
+      "expected": "all"
+    },
+    {
+      "q": "What does cluster bootstrap estimate?",
+      "expected": "intervals"
+    },
+    {
+      "q": "What does McNemar test measure?",
+      "expected": "p-value"
+    },
+    {
+      "q": "What do system prompts define?",
+      "expected": "role"
+    },
+    {
+      "q": "What is a hallucination?",
+      "expected": "ungrounded"
+    },
+    {
+      "q": "What does recall measure?",
+      "expected": "fraction"
+    },
+    {
+      "q": "What makes deterministic eval cheap?",
+      "expected": "reproducible"
+    },
+    {
+      "q": "What is a failure mode in RAG?",
+      "expected": "misses"
+    },
+    {
+      "q": "What is embedding-free search?",
+      "expected": "approximation"
+    },
+    {
+      "q": "What is inline citation format?",
+      "expected": "markers"
+    },
+    {
+      "q": "What does CI pipeline catch?",
+      "expected": "regressions"
+    },
+    {
+      "q": "What metrics help detect degradation?",
+      "expected": "groundedness"
+    },
+    {
+      "q": "What does keyword search miss?",
+      "expected": "paraphrases"
+    },
+    {
+      "q": "What prevents boundary sentence loss?",
+      "expected": "overlap"
+    },
+    {
+      "q": "What does prompt injection allow?",
+      "expected": "override"
+    },
+    {
+      "q": "What proves no unauthorized action?",
+      "expected": "audit"
+    },
+    {
+      "q": "What makes retries safe?",
+      "expected": "idempotency"
+    },
+    {
+      "q": "What should user A never see?",
+      "expected": "user B"
+    },
+    {
+      "q": "What should eval sets cover?",
+      "expected": "hard"
+    },
+    {
+      "q": "What threshold should CI enforce?",
+      "expected": "threshold"
+    },
+    {
+      "q": "What affects retrieval latency?",
+      "expected": "index"
+    },
+    {
+      "q": "What is better for changing knowledge?",
+      "expected": "RAG"
+    },
+    {
+      "q": "What is better for learning style?",
+      "expected": "fine-tuning"
+    },
+    {
+      "q": "What does cosine similarity measure?",
+      "expected": "similarity"
+    },
+    {
+      "q": "How does term frequency work?",
+      "expected": "frequency"
+    },
+    {
+      "q": "What is inverse document frequency?",
+      "expected": "rarity"
+    },
+    {
+      "q": "What does chunk size affect?",
+      "expected": "precision"
+    },
+    {
+      "q": "What is a relevance score?",
+      "expected": "rrf"
+    },
+    {
+      "q": "How does overlap help?",
+      "expected": "context"
+    },
+    {
+      "q": "What is a cited chunk?",
+      "expected": "source"
+    },
+    {
+      "q": "What is an ungrounded term?",
+      "expected": "hallucination"
+    },
+    {
+      "q": "What is a grounding verdict?",
+      "expected": "grounded"
+    },
+    {
+      "q": "What is eval pass rate?",
+      "expected": "threshold"
+    },
+    {
+      "q": "What is a CI gate threshold?",
+      "expected": "threshold"
+    },
+    {
+      "q": "What is deterministic output?",
+      "expected": "reproducible"
+    },
+    {
+      "q": "What is a query token?",
+      "expected": "term"
+    },
+    {
+      "q": "What is an inverted index?",
+      "expected": "audit"
+    },
+    {
+      "q": "What is document frequency?",
+      "expected": "df"
+    },
+    {
+      "q": "What is average document length?",
+      "expected": "parameter"
+    },
+    {
+      "q": "What is a ranking function?",
+      "expected": "bm25"
+    },
+    {
+      "q": "What is score normalization?",
+      "expected": "rrf"
+    },
+    {
+      "q": "What is a retrieval budget?",
+      "expected": "latency"
+    },
+    {
+      "q": "What is a corpus document?",
+      "expected": "frequency"
+    },
+    {
+      "q": "What is a chunk boundary?",
+      "expected": "overlap"
+    },
+    {
+      "q": "What is a claim term?",
+      "expected": "retrieved"
+    },
+    {
+      "q": "What is a verified answer?",
+      "expected": "grounded"
+    }
+  ],
+  "eval_split": {
+    "dev": 0.8,
+    "test": 0.2
+  }
+}

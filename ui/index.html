@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RAG Knowledge Worker · dev4aibots</title>
+<link rel="stylesheet" href="../ai-employee-platform/demo/src/styles/tokens.css" />
+<style>
+  :root { --content-max: 1400px; }
+  .shell { display: grid; grid-template-columns: 260px 1fr; gap: 0; height: 100vh; overflow: hidden; }
+  .rail { background: var(--surface-2); border-right: 1px solid var(--line); overflow-y: auto; padding: var(--s-6); display: flex; flex-direction: column; gap: var(--s-6); }
+  .rail h3 { font-size: var(--fs-13); text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); margin-bottom: var(--s-4); }
+  .rail-item { font-size: var(--fs-13); color: var(--ink-2); padding: var(--s-3) var(--s-4); border-radius: var(--r-control); cursor: pointer; border: 1px solid transparent; }
+  .rail-item:hover { background: var(--surface-3); border-color: var(--line-strong); color: var(--ink); }
+  .rail-item.active { background: var(--accent-dim); border-color: var(--accent-line); color: var(--accent-hover); }
+  .main { overflow-y: auto; padding: var(--s-6); display: flex; flex-direction: column; gap: var(--s-8); }
+  .header { display: flex; align-items: center; gap: var(--s-4); }
+  .header h1 { font-size: var(--fs-22); }
+  .search-card { display: flex; gap: var(--s-4); align-items: flex-end; }
+  .search-input { flex: 1; min-width: 0; }
+  .query-area { display: grid; grid-template-columns: 1fr 320px; gap: var(--s-6); }
+  @media (max-width: 900px) { .query-area { grid-template-columns: 1fr; } .shell { grid-template-columns: 1fr; } .rail { display: none; } }
+  .results { display: flex; flex-direction: column; gap: var(--s-4); }
+  .result-item { border: 1px solid var(--line); border-radius: var(--r-card); overflow: hidden; display: flex; flex-direction: column; }
+  .result-item.head { background: var(--surface-2); }
+  .result-head { display: grid; grid-template-columns: 1fr auto auto auto; gap: var(--s-4); padding: var(--s-3) var(--s-5); border-bottom: 1px solid var(--line-subtle); font-family: var(--font-mono); font-size: var(--fs-11); color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; }
+  .result-body { padding: var(--s-5); font-size: var(--fs-13); color: var(--ink-2); }
+  .scores { display: flex; gap: var(--s-4); padding: var(--s-3) var(--s-5); border-bottom: 1px solid var(--line-subtle); background: var(--surface-2); font-family: var(--font-mono); font-size: var(--fs-11); }
+  .score { display: flex; flex-direction: column; gap: var(--s-1); }
+  .score-label { color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.05em; }
+  .score-val { font-variant-numeric: tabular-nums; }
+  .answer-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); overflow: hidden; display: flex; flex-direction: column; }
+  .answer-head { padding: var(--s-5) var(--s-6); border-bottom: 1px solid var(--line-subtle); display: flex; align-items: center; gap: var(--s-4); }
+  .answer-body { padding: var(--s-6); font-size: var(--fs-14); color: var(--ink); line-height: var(--lh-body); }
+  .cite { color: var(--accent); font-weight: 500; }
+  .grounding-badge { font-family: var(--font-mono); font-size: var(--fs-11); padding: 1px var(--s-3); border-radius: var(--r-chip); }
+  .citation-drawer { font-size: var(--fs-13); }
+  .citation-item { padding: var(--s-4) var(--s-5); border-bottom: 1px solid var(--line-subtle); }
+  .citation-item:last-child { border-bottom: 0; }
+  .cite-doc { font-family: var(--font-mono); font-size: var(--fs-11); color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--s-2); }
+  .cite-text { color: var(--ink-2); }
+  .eval-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); overflow: hidden; }
+  .eval-head { padding: var(--s-5) var(--s-6); border-bottom: 1px solid var(--line-subtle); }
+  .eval-body { padding: var(--s-6); }
+  .kpi-row { display: flex; gap: var(--s-4); }
+  .kpi { flex: 1; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-card); padding: var(--s-5); }
+  .kpi-label { font-family: var(--font-mono); font-size: var(--fs-11); text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); margin-bottom: var(--s-3); }
+  .kpi-value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-28); font-weight: 500; letter-spacing: -0.03em; line-height: 1; color: var(--ink); }
+  .kpi-foot { font-size: var(--fs-12); color: var(--ink-3); margin-top: var(--s-3); }
+  .mono { font-family: var(--font-mono); }
+  .tag { font-family: var(--font-mono); font-size: var(--fs-11); background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: var(--r-chip); padding: 1px var(--s-3); color: var(--ink-2); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="rail">
+    <h3>Systems</h3>
+    <div class="rail-item active">Query</div>
+    <div class="rail-item">Citations</div>
+    <div class="rail-item">Eval</div>
+    <div class="rail-item">Index</div>
+    <h3>Repo</h3>
+    <div class="rail-item">github.com/dev4aibots/rag-knowledge-worker</div>
+    <div class="rail-item">live demo</div>
+    <h3>Stack</h3>
+    <div class="tag">Python</div>
+    <div class="tag">FastAPI</div>
+    <div class="tag">TF-IDF</div>
+    <div class="tag">BM25</div>
+    <div class="tag">RRF</div>
+    <div class="tag">Zero ML deps</div>
+  </aside>
+  <main class="main">
+    <header class="header">
+      <h1>RAG Knowledge Worker</h1>
+      <span class="badge badge-info">hybrid retrieval · verified citations</span>
+    </header>
+
+    <section class="search-card card">
+      <div class="card-body tight">
+        <div class="search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="q" class="input search-input" placeholder="Ask about RAG, evaluation, citations, multi-tenancy…" />
+        </div>
+        <button class="btn btn-primary" id="ask">Ask</button>
+        <button class="btn btn-ghost" id="eval-run">Run eval</button>
+      </div>
+    </section>
+
+    <section class="query-area">
+      <div>
+        <div class="answer-card">
+          <div class="answer-head">
+            <div>
+              <div class="label">Answer</div>
+              <div style="font-size:var(--fs-13); font-weight:600">Grounded response</div>
+            </div>
+            <span id="grounding-badge" class="grounding-badge badge-info">computing…</span>
+          </div>
+          <div class="answer-body" id="answer-body">Ask a question to see a grounded answer with citations.</div>
+        </div>
+        <div class="results">
+          <div class="label">Retrieved chunks</div>
+          <div id="results-list" class="results"></div>
+        </div>
+      </div>
+      <aside>
+        <div class="eval-panel">
+          <div class="eval-head">
+            <div class="label">Evaluation</div>
+            <div style="font-size:var(--fs-13); font-weight:600">100+ questions · dev/test split</div>
+          </div>
+          <div class="eval-body">
+            <div class="kpi-row">
+              <div class="kpi">
+                <div class="kpi-label">Pass rate</div>
+                <div class="kpi-value" id="kpi-pass">–</div>
+                <div class="kpi-foot">gate: ≥90%</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">Dev set</div>
+                <div class="kpi-value" id="kpi-dev">–</div>
+                <div class="kpi-foot">threshold tuning</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">Test set</div>
+                <div class="kpi-value" id="kpi-test">–</div>
+                <div class="kpi-foot">held out</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">Gate</div>
+                <div class="kpi-value" id="kpi-gate" style="color:var(--ink-3)">–</div>
+                <div class="kpi-foot">CI pass/fail</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:var(--s-6)">
+          <div class="card-body">
+            <div class="label">How it works</div>
+            <p style="font-size:var(--fs-13); color:var(--ink-2); margin-bottom:var(--s-4)">Hybrid retrieval combines TF-IDF (term similarity) and BM25 (keyword matching) with Reciprocal Rank Fusion. Every answer cites its source chunks, and citation verification flags ungrounded claims before they reach the user.</p>
+            <div style="font-size:var(--fs-12); color:var(--ink-3)">
+              <div style="margin-bottom:var(--s-2)">· Zero ML dependencies — runs on Python stdlib + FastAPI</div>
+              <div style="margin-bottom:var(--s-2)">· Deterministic — same query always returns same answer</div>
+              <div>· CI gate fails when pass rate drops below 90%</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="card">
+      <div class="card-body">
+        <div class="label">Citations</div>
+        <div id="citations-list" class="citation-drawer"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  const qEl = document.getElementById('q');
+  const askBtn = document.getElementById('ask');
+  const evalBtn = document.getElementById('eval-run');
+  const answerBody = document.getElementById('answer-body');
+  const groundingBadge = document.getElementById('grounding-badge');
+  const resultsList = document.getElementById('results-list');
+  const citationsList = document.getElementById('citations-list');
+  const kpiPass = document.getElementById('kpi-pass');
+  const kpiDev = document.getElementById('kpi-dev');
+  const kpiTest = document.getElementById('kpi-test');
+  const kpiGate = document.getElementById('kpi-gate');
+
+  async function ask() {
+    const q = qEl.value.trim();
+    if (!q) return;
+    askBtn.disabled = true;
+    askBtn.textContent = 'Working…';
+    answerBody.textContent = 'Retrieving…';
+    groundingBadge.textContent = 'computing…';
+    groundingBadge.className = 'grounding-badge badge-info';
+    resultsList.innerHTML = '';
+    citationsList.innerHTML = '';
+
+    try {
+      const res = await fetch('/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q, top_k: 5 }),
+      });
+      const data = await res.json();
+
+      answerBody.textContent = data.answer;
+      if (data.grounded) {
+        groundingBadge.textContent = 'Grounded';
+        groundingBadge.className = 'grounding-badge badge-ok';
+      } else {
+        groundingBadge.textContent = 'Ungrounded: ' + (data.ungrounded_terms || []).join(', ');
+        groundingBadge.className = 'grounding-badge badge-bad';
+      }
+
+      resultsList.innerHTML = data.retrieval_scores.map((s, i) => `
+        <div class="result-item">
+          <div class="result-head">
+            <div>#${i + 1} · ${s.doc_id}</div>
+            <div class="num">RRF ${s.rrf}</div>
+            <div class="num">TFIDF ${s.tfidf}</div>
+            <div class="num">BM25 ${s.bm25}</div>
+          </div>
+          <div class="result-body">${escapeHtml(s.chunk_id)}</div>
+          <div class="scores">
+            <div class="score"><div class="score-label">rank</div><div class="score-val">#${i + 1}</div></div>
+            <div class="score"><div class="score-label">tfidf</div><div class="score-val">${s.tfidf}</div></div>
+            <div class="score"><div class="score-label">bm25</div><div class="score-val">${s.bm25}</div></div>
+            <div class="score"><div class="score-label">rrf</div><div class="score-val">${s.rrf}</div></div>
+          </div>
+        </div>
+      `).join('');
+
+      citationsList.innerHTML = data.citations.map((c, i) => `
+        <div class="citation-item">
+          <div class="cite-doc">[${i + 1}] ${c.doc_id} · ${c.chunk_id}</div>
+          <div class="cite-text">${escapeHtml(c.text)}</div>
+        </div>
+      `).join('');
+    } catch (err) {
+      answerBody.textContent = 'Error: ' + err.message;
+    } finally {
+      askBtn.disabled = false;
+      askBtn.textContent = 'Ask';
+    }
+  }
+
+  async function runEval() {
+    evalBtn.disabled = true;
+    evalBtn.textContent = 'Running…';
+    try {
+      const res = await fetch('/eval', { method: 'POST' });
+      const data = await res.json();
+      kpiPass.textContent = (data.pass_rate * 100).toFixed(1) + '%';
+      kpiDev.textContent = (data.dev_pass_rate * 100).toFixed(1) + '%';
+      kpiTest.textContent = (data.test_pass_rate * 100).toFixed(1) + '%';
+      const gateOk = data.gate_pass;
+      kpiGate.textContent = gateOk ? 'PASS' : 'FAIL';
+      kpiGate.style.color = gateOk ? 'var(--ok)' : 'var(--bad)';
+      const toast = document.createElement('div');
+      toast.className = 'toast ' + (gateOk ? 'ok' : 'bad');
+      toast.textContent = 'Eval complete: ' + data.total + ' questions, ' + data.grounded + ' passed, gate ' + (gateOk ? 'passed' : 'failed');
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    } catch (err) {
+      alert('Eval failed: ' + err.message);
+    } finally {
+      evalBtn.disabled = false;
+      evalBtn.textContent = 'Run eval';
+    }
+  }
+
+  function escapeHtml(t) {
+    return String(t).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+  }
+
+  askBtn.addEventListener('click', ask);
+  qEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') ask(); });
+  evalBtn.addEventListener('click', runEval);
+</script>
+</body>
+</html>
